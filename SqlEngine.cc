@@ -133,7 +133,30 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
 RC SqlEngine::load(const string& table, const string& loadfile, bool index)
 {
   /* your code here */
-
+  RecordFile rf;
+  rf.open(table+".tbl",'w');
+  ifstream infile;
+  infile.open(loadfile.c_str(),ifstream::in);
+ // infile.open (loadfile.c_str(), std::fstream::in | std::fstream::out | std::fstream::app);
+  if (!infile.is_open()){
+    fprintf(stderr, "Error: failed to open file, %s\n",loadfile.c_str()); 
+    return -1;
+  }
+  int key;
+  string value;
+  string line;
+  RecordId rid;
+  while (getline(infile,line)){
+    if(parseLoadLine(line,key,value) != 0){ //parse the line into key and value
+      fprintf(stderr, "Error: failed to parse, key: %d  value: %s\n",key,value.c_str()); 
+      return -1;
+    }
+    if(rf.append(key,value,rid)){
+      fprintf(stderr, "Error: failed to append, key: %d value: %s\n",key,value.c_str()); 
+      return -1;
+    }
+  }
+  infile.close();
   return 0;
 }
 
