@@ -15,9 +15,13 @@
 
 /**
  * BTLeafNode: The class representing a B+tree leaf node.
+
+ The structure is the first 12*84entries=1008 bytes, 
+ and the last 16 bytes can contain number of entries, the pointer to the next leaf node etc,... 
  */
 class BTLeafNode {
   public:
+    BTLeafNode(); //constructor added.
    /**
     * Insert the (key, rid) pair to the node.
     * Remember that all keys inside a B+tree node should be kept sorted.
@@ -104,14 +108,27 @@ class BTLeafNode {
     * that contains the node.
     */
     char buffer[PageFile::PAGE_SIZE];
+    
+    /*
+    LeafNode entry, contains recordId and key.
+    */
+    struct LeafEntry
+    {
+        RecordId rid;
+        int key;
+    };
 }; 
 
 
 /**
  * BTNonLeafNode: The class representing a B+tree nonleaf node.
+ The structure:  the first 8*126entries=1008 bytes hold entries, 
+ and the last 16 bytes can contain number of entries, etc,... 
  */
 class BTNonLeafNode {
   public:
+    BTNonLeafNode();//constructor added
+
    /**
     * Insert a (key, pid) pair to the node.
     * Remember that all keys inside a B+tree node should be kept sorted.
@@ -182,6 +199,11 @@ class BTNonLeafNode {
     * that contains the node.
     */
     char buffer[PageFile::PAGE_SIZE];
+    struct NonLeafEntry
+    {
+        PageId pid;
+        int key;
+    };
 }; 
 
 #endif /* BTREENODE_H */

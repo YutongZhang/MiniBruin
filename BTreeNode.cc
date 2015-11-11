@@ -2,6 +2,10 @@
 
 using namespace std;
 
+BTLeafNode::BTLeafNode(){
+
+}
+
 /*
  * Read the content of the node from the page pid in the PageFile pf.
  * @param pid[IN] the PageId to read
@@ -9,7 +13,9 @@ using namespace std;
  * @return 0 if successful. Return an error code if there is an error.
  */
 RC BTLeafNode::read(PageId pid, const PageFile& pf)
-{ return 0; }
+{ 	
+	return pf.read(pid,buffer); 
+}
     
 /*
  * Write the content of the node to the page pid in the PageFile pf.
@@ -18,7 +24,9 @@ RC BTLeafNode::read(PageId pid, const PageFile& pf)
  * @return 0 if successful. Return an error code if there is an error.
  */
 RC BTLeafNode::write(PageId pid, PageFile& pf)
-{ return 0; }
+{ 
+	return pf.write(pid,buffer); 
+}
 
 /*
  * Return the number of keys stored in the node.
@@ -89,6 +97,12 @@ PageId BTLeafNode::getNextNodePtr()
 RC BTLeafNode::setNextNodePtr(PageId pid)
 { return 0; }
 
+
+
+BTNonLeafNode::BTNonLeafNode(){
+
+
+}
 /*
  * Read the content of the node from the page pid in the PageFile pf.
  * @param pid[IN] the PageId to read
