@@ -33,7 +33,10 @@ RC BTLeafNode::write(PageId pid, PageFile& pf)
  * @return the number of keys in the node
  */
 int BTLeafNode::getKeyCount()
-{ return 0; }
+{ 	int keyCount=0;
+	memcpy(&keyCount,buffer+PageFile::PAGE_SIZE -8, sizeof(int));
+	return keyCount; 
+}
 
 /*
  * Insert a (key, rid) pair to the node.
@@ -42,7 +45,9 @@ int BTLeafNode::getKeyCount()
  * @return 0 if successful. Return an error code if the node is full.
  */
 RC BTLeafNode::insert(int key, const RecordId& rid)
-{ return 0; }
+{ 
+	return 0; 
+}
 
 /*
  * Insert the (key, rid) pair to the node
@@ -70,7 +75,24 @@ RC BTLeafNode::insertAndSplit(int key, const RecordId& rid,
  * @return 0 if searchKey is found. Otherwise return an error code.
  */
 RC BTLeafNode::locate(int searchKey, int& eid)
-{ return 0; }
+{ 
+	// loop through the entire leaf node to find the first key that is larger or equal to searchKey
+	int maxKey = getKeyCount();
+	int key;
+	RecordId rid;
+	for (int i = 0; i < maxKey; ++i)
+	{
+		readEntry(i,key,rid);
+		if (key>=searchKey) // find the key
+		{
+			eid = i;
+			return 0;
+		}
+	}
+	eid = maxKey;
+	return RC_NO_SUCH_RECORD; 
+}
+
 
 /*
  * Read the (key, rid) pair from the eid entry.
@@ -80,14 +102,28 @@ RC BTLeafNode::locate(int searchKey, int& eid)
  * @return 0 if successful. Return an error code if there is an error.
  */
 RC BTLeafNode::readEntry(int eid, int& key, RecordId& rid)
-{ return 0; }
+{ 	
+	int maxKey = getKeyCount();
+	if (eid<0 ||eid>=maxKey){
+		return RC_NO_SUCH_RECORD;
+	}
+	LeafEntry le;
+	memcpy(&le,buffer+(eid*sizeof(LeafEntry)), sizeof(LeafEntry));
+	rid = le.rid;
+	key = le.key;
+	return 0; 
+
+}
 
 /*
  * Return the pid of the next slibling node.
  * @return the PageId of the next sibling node 
  */
 PageId BTLeafNode::getNextNodePtr()
-{ return 0; }
+{ 	PageId pid;
+	memcpy(&pid,buffer+PageFile::PAGE_SIZE-sizeof(PageId),sizeof(PageId));
+	return 0; 
+}
 
 /*
  * Set the pid of the next slibling node.
@@ -95,8 +131,12 @@ PageId BTLeafNode::getNextNodePtr()
  * @return 0 if successful. Return an error code if there is an error.
  */
 RC BTLeafNode::setNextNodePtr(PageId pid)
-{ return 0; }
+{ 	memcpy(buffer+PageFile::PAGE_SIZE-sizeof(PageId),&pid,sizeof(PageId));
+	return 0; 
+}
 
+
+/*=============================================================================*/
 
 
 BTNonLeafNode::BTNonLeafNode(){
