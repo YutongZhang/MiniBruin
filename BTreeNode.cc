@@ -3,7 +3,11 @@
 using namespace std;
 
 BTLeafNode::BTLeafNode(){
-
+	for(int i = 0;i<PageFile::PAGE_SIZE; i++){ //fill the whole node with '\0'
+		buffer[i]='\0';
+	}
+	int keyCount=0; //original keyCount
+	memcpy(buffer+PageFile::PAGE_SIZE-8,&keyCount,sizeof(int));	
 }
 
 /*
