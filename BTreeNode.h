@@ -21,6 +21,7 @@
  */
 class BTLeafNode {
   public:
+    static const int MAX_LEAF_COUNT = 84;
     BTLeafNode(); //constructor added.
    /**
     * Insert the (key, rid) pair to the node.
@@ -127,6 +128,7 @@ class BTLeafNode {
  */
 class BTNonLeafNode {
   public:
+    static const int MAX_NONLEAF_COUNT = 126;
     BTNonLeafNode();//constructor added
 
    /**

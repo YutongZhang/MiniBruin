@@ -34,7 +34,7 @@ RC BTLeafNode::write(PageId pid, PageFile& pf)
  */
 int BTLeafNode::getKeyCount()
 { 	int keyCount=0;
-	memcpy(&keyCount,buffer+PageFile::PAGE_SIZE -8, sizeof(int));
+	memcpy(&keyCount,buffer+PageFile::PAGE_SIZE-8,sizeof(int));
 	return keyCount; 
 }
 
@@ -45,7 +45,26 @@ int BTLeafNode::getKeyCount()
  * @return 0 if successful. Return an error code if the node is full.
  */
 RC BTLeafNode::insert(int key, const RecordId& rid)
-{ 
+{ 	int keyCount = getKeyCount();
+	if (keyCount>=MAX_LEAF_COUNT)
+		return RC_NODE_FULL;
+	int eid;
+	locate(key,eid);
+	// insert the pair into location eid.
+	
+	//firstly, copy entries after eid to a temp buffer.
+	int rightSize = (keyCount-eid)*sizeof(LeafEntry);
+	char tmpBuffer[rightSize];
+	memcpy(tmpBuffer,buffer+eid*sizeof(LeafEntry),rightSize);
+	//secondly,insert the pair into entry eid.
+	LeafEntry le;
+	le.key =key;
+	le.rid = rid;
+	memcpy(buffer+eid*sizeof(LeafEntry),&le,sizeof(LeafEntry));
+	//increase keyCount.
+	keyCount++; 
+	//write maxKey back into node.
+	memcpy(buffer+PageFile::PAGE_SIZE-8,&keyCount,sizeof(int));
 	return 0; 
 }
 
@@ -61,7 +80,43 @@ RC BTLeafNode::insert(int key, const RecordId& rid)
  */
 RC BTLeafNode::insertAndSplit(int key, const RecordId& rid, 
                               BTLeafNode& sibling, int& siblingKey)
-{ return 0; }
+{ 
+	int keyCount = getKeyCount(); //number of entries before insert. should be 84, 0-83
+	//after insert and split, left:0-42, right:0-41
+	int halfCount = keyCount/2;
+	int eid;
+	locate(key,eid);
+	if (eid<=halfCount){ //inserted pair should be in left half
+		for (int i = halfCount; i < keyCount; i++) //move right half to the sibling node
+		{
+			int sibKey;
+			RecordId sibRid;
+			readEntry(i,sibKey,sibRid);
+			sibling.insert(sibKey,sibRid);
+		}
+		insert(key,rid); //insert pair into left half
+		int leftCount = halfCount+1;
+		memcpy(buffer+PageFile::PAGE_SIZE-8, &leftCount,sizeof(int));  //update keyCount of left half
+	}
+	else{//inserted pair should be in right half
+		for (int i = halfCount+1; i < keyCount; i++) //move right half to the sibling node
+		{
+			int sibKey;
+			RecordId sibRid;
+			readEntry(i,sibKey,sibRid);
+			sibling.insert(sibKey,sibRid);
+		}
+		sibling.insert(key,rid); //insert pair into right sibling half.
+		int leftCount = halfCount;
+		memcpy(buffer+PageFile::PAGE_SIZE-8, &leftCount,sizeof(int));  //update keyCount of left half
+	}
+	int sibKey;
+	RecordId sibRid;
+	readEntry(0,sibKey,sibRid);
+	siblingKey = sibKey;
+	return 0; 
+
+}
 
 /**
  * If searchKey exists in the node, set eid to the index entry
@@ -83,13 +138,17 @@ RC BTLeafNode::locate(int searchKey, int& eid)
 	for (int i = 0; i < maxKey; ++i)
 	{
 		readEntry(i,key,rid);
-		if (key>=searchKey) // find the key
+		if (key==searchKey) // find the key
 		{
 			eid = i;
 			return 0;
 		}
+		else if(key>searchKey){ //not found, set eid to the entry immediately after the largest index key that is smaller than searchKey.
+			eid = i;
+			return RC_NO_SUCH_RECORD;
+		}
 	}
-	eid = maxKey;
+	eid = maxKey; // last item.
 	return RC_NO_SUCH_RECORD; 
 }
 
