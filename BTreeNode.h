@@ -195,6 +195,12 @@ class BTNonLeafNode {
     */
     RC write(PageId pid, PageFile& pf);
 
+	/*
+	* Read the (pid, key) pair from the eid entry.
+	* @return 0 if successful. Return an error code if there is an error.
+	*/
+	RC readEntry(int eid, int& key, PageId& pid);
+
   private:
    /**
     * The main memory buffer for loading the content of the disk page 
@@ -203,8 +209,8 @@ class BTNonLeafNode {
     char buffer[PageFile::PAGE_SIZE];
     struct NonLeafEntry
     {
-        PageId pid;
         int key;
+		PageId pid;
     };
 }; 
 
