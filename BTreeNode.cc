@@ -60,6 +60,10 @@ RC BTLeafNode::insert(int key, const RecordId& rid)
 	int rightSize = (keyCount-eid)*sizeof(LeafEntry);
 	char* tmpBuffer = new char[rightSize];
 	memcpy(tmpBuffer,buffer+eid*sizeof(LeafEntry),rightSize);
+
+	//then, copy temp back into buffer
+	memcpy(buffer+(eid+1)*sizeof(LeafEntry), tmpBuffer,rightSize);
+
 	//secondly,insert the pair into entry eid.
 	LeafEntry le;
 	le.key =key;
@@ -87,7 +91,7 @@ RC BTLeafNode::insertAndSplit(int key, const RecordId& rid,
 { 
 	int keyCount = getKeyCount(); //number of entries before insert. should be 84, 0-83
 	//after insert and split, left:0-42, right:0-41
-	int halfCount = keyCount/2;
+	int halfCount = keyCount/2; //42 if full.
 	int eid;
 	locate(key,eid);
 	if (eid<=halfCount){ //inserted pair should be in left half
@@ -98,9 +102,9 @@ RC BTLeafNode::insertAndSplit(int key, const RecordId& rid,
 			readEntry(i,sibKey,sibRid);
 			sibling.insert(sibKey,sibRid);
 		}
-		insert(key,rid); //insert pair into left half
-		int leftCount = halfCount+1;
+		int leftCount = halfCount;
 		memcpy(buffer+PageFile::PAGE_SIZE-8, &leftCount,sizeof(int));  //update keyCount of left half
+		insert(key,rid); //insert pair into left half
 	}
 	else{//inserted pair should be in right half
 		for (int i = halfCount+1; i < keyCount; i++) //move right half to the sibling node
@@ -111,12 +115,12 @@ RC BTLeafNode::insertAndSplit(int key, const RecordId& rid,
 			sibling.insert(sibKey,sibRid);
 		}
 		sibling.insert(key,rid); //insert pair into right sibling half.
-		int leftCount = halfCount;
+		int leftCount = halfCount+1;  //update keyCount of left half, which is 43.
 		memcpy(buffer+PageFile::PAGE_SIZE-8, &leftCount,sizeof(int));  //update keyCount of left half
 	}
 	int sibKey;
 	RecordId sibRid;
-	readEntry(0,sibKey,sibRid);
+	sibling.readEntry(0,sibKey,sibRid);
 	siblingKey = sibKey;
 	return 0; 
 
@@ -298,7 +302,7 @@ RC BTNonLeafNode::insertAndSplit(int key, PageId pid, BTNonLeafNode& sibling, in
 		readEntry(eid, ekey, epid);
 		if (key < ekey) break;
 	}  // find the position to insert 
-	if (eid = halfCount) { //the inserted one is the one with midkey
+	if (eid == halfCount) { //the inserted one is the one with midkey
 		midKey = key;
 		for (int i = halfCount; i < keyCount; i++) //move the right part to the new node
 		{
