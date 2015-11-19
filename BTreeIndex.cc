@@ -18,6 +18,7 @@ using namespace std;
 BTreeIndex::BTreeIndex()
 {
     rootPid = -1;
+    treeHeight = 0;
 }
 
 /*
@@ -29,6 +30,27 @@ BTreeIndex::BTreeIndex()
  */
 RC BTreeIndex::open(const string& indexname, char mode)
 {
+
+	RC rc;
+	if ((rc = pf.open(indexname,mode))<0){
+		return rc;
+	}
+	//the index is empty, initialize a empty root.
+	if(pf.endPid()<=0){
+		return 0;
+		//rootPid = -1;
+		//treeHeight = 0;
+	}
+	//Pid 0 of the index is used to store rootPid and treeHeight.
+	// index already exists.
+	// read rootPid, treeHeight from PID 0
+	else{
+		char *buf = new char[PageFile::PAGE_SIZE];
+		if ((rc = pf.read(0,buf))<0)
+			return rc;
+		memcpy(&rootPid,buf,sizeof(PageId));
+		memcpy(&treeHeight,buf+sizeof(PageId),sizeof(int));
+	}
     return 0;
 }
 
@@ -38,6 +60,15 @@ RC BTreeIndex::open(const string& indexname, char mode)
  */
 RC BTreeIndex::close()
 {
+	//write rootPid, treeHeight back into Pid 0
+	RC rc;
+	char *buf = new char[PageFile::PAGE_SIZE];
+    memcpy(buf,&rootPid,sizeof(PageId));
+    memcpy(buf+sizeof(PageId),&treeHeight,sizeof(int));
+    if ((rc = pf.write(0,buf))<0)
+		return rc;
+	if ((rc = pf.close())<0)
+		return rc;
     return 0;
 }
 
@@ -72,6 +103,28 @@ RC BTreeIndex::insert(int key, const RecordId& rid)
  */
 RC BTreeIndex::locate(int searchKey, IndexCursor& cursor)
 {
+	PageId pid;
+	pid = rootPid;//initializaiton
+	BTNonLeafNode nlNode;
+	BTLeafNode lNode;
+	RC rc;
+	int eid;
+	for (int i = 0; i < treeHeight-1; ++i)
+	{
+		if((rc=nlNode.read(pid,pf))<0)
+			return rc;
+		if ((rc=nlNode.locateChildPtr(searchKey,pid))<0)
+			return rc;
+	}
+	//arrive at a leaf node
+	//the pid points to a correct leaf node.
+	if ((rc=lNode.read(pid,pf))<0)
+		return rc;
+	//locate the entry.
+	if ((rc=lNode.locate(searchKey,eid))<0)
+		return rc;
+	cursor.eid = eid;
+	cursor.pid = pid;
     return 0;
 }
 
@@ -85,5 +138,20 @@ RC BTreeIndex::locate(int searchKey, IndexCursor& cursor)
  */
 RC BTreeIndex::readForward(IndexCursor& cursor, int& key, RecordId& rid)
 {
+	RC rc;
+	BTLeafNode lNode;
+	if ((rc=lNode.read(cursor.pid,pf))<0)
+		return rc;
+	if (cursor.eid==lNode.getKeyCount()) { //at the end of the node.
+		cursor.pid = lNode.getNextNodePtr();
+		cursor.eid =0; //set to next sibling
+		if(cursor.pid ==-1) // for the last leaf node, what should we set the next node pointer? suppose -1.
+			return RC_END_OF_TREE;
+		else
+			return 1; //Do not know what should return.. 
+	}
+	if ((rc=lNode.readEntry(cursor.eid,key,rid))<0)
+		return rc;	
+	cursor.eid++;
     return 0;
 }

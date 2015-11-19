@@ -8,6 +8,10 @@ BTLeafNode::BTLeafNode(){
 	}
 	int keyCount=0; //original keyCount
 	memcpy(buffer+PageFile::PAGE_SIZE-8,&keyCount,sizeof(int));	
+	//
+	int pid=-1;
+	// pointer to the next leaf node = -1 when initialized.
+	memcpy(buffer+PageFile::PAGE_SIZE-4,&pid,sizeof(int));	
 }
 
 /*
