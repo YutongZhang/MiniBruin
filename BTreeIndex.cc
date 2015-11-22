@@ -17,8 +17,8 @@ using namespace std;
  */
 BTreeIndex::BTreeIndex()
 {
-    rootPid = -1;
-    treeHeight = 0;
+    rootPid = 1;    //initial root stored in pid 1
+    treeHeight = 1;
 }
 
 /*
@@ -37,9 +37,9 @@ RC BTreeIndex::open(const string& indexname, char mode)
 	}
 	//the index is empty, initialize a empty root.
 	if(pf.endPid()<=0){
+		BTLeafNode lNode;
+		lNode.write(1, pf); //initialize the root node as a leaf node
 		return 0;
-		//rootPid = -1;
-		//treeHeight = 0;
 	}
 	//Pid 0 of the index is used to store rootPid and treeHeight.
 	// index already exists.
@@ -80,7 +80,102 @@ RC BTreeIndex::close()
  */
 RC BTreeIndex::insert(int key, const RecordId& rid)
 {
-    return 0;
+	PageId pid = rootPid;
+
+	//initialize the b+ tree
+	if (treeHeight == 1) 
+	{
+		BTLeafNode lNode;
+		lNode.read(pid, pf);
+		if (lNode.getKeyCount() < lNode.MAX_LEAF_COUNT) //leaf node not full
+			lNode.insert(key, rid);
+		else                                            //leaf node full
+		{
+			BTLeafNode lSibling;
+			BTNonLeafNode newRoot;
+			int upKey;
+			lNode.insertAndSplit(key, rid, lSibling, upKey);
+			PageId sibling = pf.endPid();
+			lSibling.write(sibling, pf);
+			lNode.setNextNodePtr(sibling);
+			newRoot.initializeRoot(pid, upKey, sibling); //new tree root
+			PageId endPid = pf.endPid();
+			newRoot.write(endPid, pf);
+			rootPid = endPid; //update root and height info.
+			treeHeight++;
+		}
+		lNode.write(pid, pf);
+		return 0;
+	}
+	
+	BTNonLeafNode nlNode;
+	nlNode.read(pid, pf);
+
+	PageId newSibling = -1; //pageId of the new sibling, default -1 means no new sibling
+	int newKey;
+	insertRecursive(0, pid, key, rid, newSibling, newKey); //start recursive
+
+	if (newSibling == -1)  //no new node added
+		return 0;
+	//new node added. create new root            
+	BTNonLeafNode newRoot;
+    newRoot.initializeRoot(pid, newKey, newSibling); //new tree root
+	PageId endPid = pf.endPid();
+	newRoot.write(endPid, pf);
+	rootPid = endPid; //update root and height info.
+	treeHeight++;
+	return 0;
+}
+
+RC BTreeIndex::insertRecursive(int height, PageId pid, int key, const RecordId& rid, PageId& sibling, int& upKey)
+{
+	//leaf node
+	if (height == treeHeight - 1)
+	{
+		BTLeafNode lNode;
+		lNode.read(pid, pf);
+		if (lNode.getKeyCount() < lNode.MAX_LEAF_COUNT) //leaf node not full
+			lNode.insert(key, rid);
+		else                                            //leaf node full
+		{
+			BTLeafNode lSibling;
+			lNode.insertAndSplit(key, rid, lSibling, upKey);
+			sibling = pf.endPid();
+			lSibling.setNextNodePtr(lNode.getNextNodePtr());
+			lNode.setNextNodePtr(sibling);  //set next node pointer
+			lSibling.write(sibling, pf);
+		}
+		lNode.write(pid, pf);
+		return 0;
+	}
+
+	//nonleaf node
+	BTNonLeafNode nlNode;
+	nlNode.read(pid, pf);
+
+	PageId newPid;
+	nlNode.locateChildPtr(key, newPid);
+	PageId newSibling = -1;
+	int newKey;
+	insertRecursive(height + 1, newPid, key, rid, newSibling, newKey); //recursive
+
+	if (newSibling == -1) //no new pair added
+		return 0;
+
+	if (nlNode.getKeyCount() < nlNode.MAX_NONLEAF_COUNT)  //node not full
+	{
+		nlNode.insert(newKey, newSibling);
+	}
+	else                                                 //node full
+	{
+		BTNonLeafNode nlSibling;
+		nlNode.insertAndSplit(newKey, newSibling, nlSibling, upKey);
+		sibling = pf.endPid();
+		nlSibling.write(sibling, pf);
+	}
+
+	nlNode.write(pid, pf);
+	return 0;
 }
 
 /**
