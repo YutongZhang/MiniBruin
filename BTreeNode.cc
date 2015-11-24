@@ -404,6 +404,8 @@ RC BTNonLeafNode::initializeRoot(PageId pid1, int key, PageId pid2)
 	memcpy(buffer, &pid1, sizeof(PageId));
 	memcpy(buffer + sizeof(PageId), &key, sizeof(int));
 	memcpy(buffer + sizeof(PageId) + sizeof(int), &pid2, sizeof(PageId));
+	int keyCount = 1;
+	memcpy(buffer + PageFile::PAGE_SIZE - 4, &keyCount, sizeof(int));
 	return 0;
 }
 

@@ -107,9 +107,6 @@ RC BTreeIndex::insert(int key, const RecordId& rid)
 		lNode.write(pid, pf);
 		return 0;
 	}
-	
-	BTNonLeafNode nlNode;
-	nlNode.read(pid, pf);
 
 	PageId newSibling = -1; //pageId of the new sibling, default -1 means no new sibling
 	int newKey;
