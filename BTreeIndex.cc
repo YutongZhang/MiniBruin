@@ -202,7 +202,7 @@ RC BTreeIndex::locate(int searchKey, IndexCursor& cursor)
 	RC rc;
 	int eid;
 	cout<<" treeHEIGHT: "<<treeHeight<<" rootPid: "<<rootPid<<endl;
-	for (int i = 0; i <= treeHeight-1; ++i)
+	for (int i = 0; i < treeHeight-1; ++i)
 	{	cout<<"in the for"<<endl;
 		if((rc=nlNode.read(pid,pf))<0)
 			cout<<"return 1"<<endl;
