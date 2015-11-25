@@ -201,22 +201,31 @@ RC BTreeIndex::locate(int searchKey, IndexCursor& cursor)
 	BTLeafNode lNode;
 	RC rc;
 	int eid;
-	for (int i = 0; i < treeHeight-1; ++i)
-	{
+	cout<<" treeHEIGHT: "<<treeHeight<<" rootPid: "<<rootPid<<endl;
+	for (int i = 0; i <= treeHeight-1; ++i)
+	{	cout<<"in the for"<<endl;
 		if((rc=nlNode.read(pid,pf))<0)
+			cout<<"return 1"<<endl;
 			return rc;
 		if ((rc=nlNode.locateChildPtr(searchKey,pid))<0)
+			cout<<"return 2"<<endl;
 			return rc;
+		cout<<"?????"<<endl;
 	}
+	cout<<"out the for"<<endl;
 	//arrive at a leaf node
 	//the pid points to a correct leaf node.
 	if ((rc=lNode.read(pid,pf))<0)
+		cout<<"return 3"<<endl;
 		return rc;
 	//locate the entry.
-	if ((rc=lNode.locate(searchKey,eid))<0)
+	if ((rc=lNode.locate(searchKey,eid))<0){
+		cout<<"leaf locate: "<<rc<<" "<<eid<<" "<<pid<<endl;
+		cursor.eid = eid;
+		cursor.pid = pid;
 		return rc;
-	cursor.eid = eid;
-	cursor.pid = pid;
+	}
+	cout<<"locate return successfully " <<eid <<" "<<pid<<endl;
     return 0;
 }
 
