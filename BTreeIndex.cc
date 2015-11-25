@@ -215,9 +215,10 @@ RC BTreeIndex::locate(int searchKey, IndexCursor& cursor)
 	cout<<"out the for"<<endl;
 	//arrive at a leaf node
 	//the pid points to a correct leaf node.
-	if ((rc=lNode.read(pid,pf))<0)
+	if ((rc=lNode.read(pid,pf))<0){
 		cout<<"return 3"<<endl;
 		return rc;
+	}
 	//locate the entry.
 	if ((rc=lNode.locate(searchKey,eid))<0){
 		cout<<"leaf locate: "<<rc<<" "<<eid<<" "<<pid<<endl;
