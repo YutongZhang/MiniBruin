@@ -114,12 +114,17 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
     //cout<<"cursor.pid: "<<cursor.pid<<" cursor.eid: "<<cursor.eid<<endl;
     while(true) {
         rc=btIdx.readForward(cursor,key,rid);
-      //  cout<<"RC: "<<rc<<" key: "<<key <<"cursor.pid: "<<cursor.pid<<" cursor.eid: "<<cursor.eid<<endl;
+        //cout<<"RC: "<<rc<<" key: "<<key <<"cursor.pid: "<<cursor.pid<<" cursor.eid: "<<cursor.eid<<endl;
         if(rc<0)
           break;
+        if(rc!=0) //rc may be 1, at the end of a node, but this node is not the end of the tree.
+          continue;
         //cout<<"key read: "<<key<<endl;
-        if ( (rc = rf.read(rid, key, value)) < 0){
-          goto exit_select;
+        //if count(*), we do not need to read the record.
+        if(attr!=4){  
+          if ( (rc = rf.read(rid, key, value)) < 0){
+            goto exit_select;
+          }
         }
         for (unsigned i = 0; i < cond.size(); i++)
         {
