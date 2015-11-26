@@ -193,7 +193,7 @@ RC BTLeafNode::readEntry(int eid, int& key, RecordId& rid)
 PageId BTLeafNode::getNextNodePtr()
 { 	PageId pid;
 	memcpy(&pid,buffer+PageFile::PAGE_SIZE-sizeof(PageId),sizeof(PageId));
-	return 0; 
+	return pid;
 }
 
 /*

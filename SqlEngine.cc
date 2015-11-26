@@ -100,22 +100,24 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
           }
       }  
   }
-  cout<<"hasIndex:  "<<hasIndex<<" useIndex:  "<<useIndex<<endl;
+  //cout<<"hasIndex:  "<<hasIndex<<" useIndex:  "<<useIndex<<endl;
   if (hasIndex && useIndex)
   {
     count=0;
-    if (hasEqual)
+    if (hasEqual){
+    //  cout<<"has Equal Key"<<endl;
       btIdx.locate(equalKey,cursor);
+    }
     else
       btIdx.locate(minKey,cursor);
-    cout<<"equalKey: "<<equalKey<<" minKey: "<<minKey<<endl;
-    cout<<"cursor.pid: "<<cursor.pid<<" cursor.eid: "<<cursor.eid<<endl;
+    //cout<<"equalKey: "<<equalKey<<" minKey: "<<minKey<<endl;
+    //cout<<"cursor.pid: "<<cursor.pid<<" cursor.eid: "<<cursor.eid<<endl;
     while(true) {
         rc=btIdx.readForward(cursor,key,rid);
-        cout<<"RC: "<<rc<<endl;
+      //  cout<<"RC: "<<rc<<" key: "<<key <<"cursor.pid: "<<cursor.pid<<" cursor.eid: "<<cursor.eid<<endl;
         if(rc<0)
           break;
-        cout<<"key read: "<<key<<endl;
+        //cout<<"key read: "<<key<<endl;
         if ( (rc = rf.read(rid, key, value)) < 0){
           goto exit_select;
         }
@@ -132,8 +134,10 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
           }
           switch (cond[i].comp) {
             case SelCond::EQ:
+              //cout<<"equal condition, diff is : " <<diff<<endl;
               if (diff != 0)
-                if (cond[i].attr == 1) goto exit_select; // key is not found in the index.
+                if (cond[i].attr == 1) 
+                  goto exit_select; // key is not found in the index.        
                 else 
                   continue; // it is value. continue to next tuple
               break;
@@ -161,7 +165,8 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
       
 
         count++;
-
+        // cout<<"print a tuple"<<endl;
+        // cout<<"attr is "<<attr<<endl;
       // print the tuple 
       switch (attr) {
       case 1:  // SELECT key
