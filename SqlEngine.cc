@@ -53,7 +53,7 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
 
   int equalKey=-1;
   bool hasEqual=false;
-  int minKey = -200;
+  int minKey = -0x7fffffff;
   // open the table file
   if ((rc = rf.open(table + ".tbl", 'r')) < 0) {
     fprintf(stderr, "Error: table %s does not exist\n", table.c_str());
@@ -150,7 +150,9 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
               if (diff == 0) continue;
               break;
           case SelCond::GT:
-              if (diff <= 0) continue;
+              //cout<<"in GT: "<<diff<<endl;
+              //cout<<(diff<=0)<<endl;
+              if (diff <= 0) goto next_idxtuple;
               break;
           case SelCond::LT:
               if (diff >= 0)
@@ -158,7 +160,7 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
                 else continue;
               break;
           case SelCond::GE:
-              if (diff < 0) continue;
+              if (diff < 0) goto next_idxtuple;
               break;
           case SelCond::LE:
               if (diff > 0)
@@ -184,6 +186,9 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
         fprintf(stdout, "%d '%s'\n", key, value.c_str());
         break;
       }
+      next_idxtuple:
+        continue;
+
      }
 
     }
